@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import learning_curve
 from sklearn.metrics import r2_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import LinearRegression
@@ -7,10 +9,9 @@ from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
-from sklearn.preprocessing import LabelEncoder
 from xgboost import XGBRegressor
 from xgboost import XGBClassifier
-from catboost import CatBoostRegressor, cv
+from catboost import CatBoostRegressor
 from catboost import CatBoostClassifier
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.ensemble import AdaBoostClassifier
@@ -34,6 +35,8 @@ class Classification:
         sc= StandardScaler()
         self.X_train = sc.fit_transform(self.X_train) 
         self.X_test = sc.transform(self.X_test)
+        self.X_combined = np.r_[self.X_train, self.X_test]
+        self.y_combined = np.r_[self.y_train, self.y_test] 
         # self.y_train=self.y_train.reshape(-1)
         # df_train.info()
     def main(self):
@@ -52,7 +55,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
             
     def DecisionTree(self):
@@ -67,7 +71,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
     
     def RandomForest(self):
@@ -82,7 +87,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
     
     def KNN(self):
@@ -97,7 +103,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
     
     def NaiveBayes(self):
@@ -112,7 +119,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
     
     def SVM(self):      
@@ -129,13 +137,14 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
         
     def XGBoost(self):
-        classifier=XGBClassifier()
+        classifier=XGBClassifier(eval_metric='logloss',use_label_encoder=False)
         type='XGBoost'
-        parameters =[{'n_jobs':[-1],'use_label_encoder':[False],'eval_metric':['error','logloss', 'auc'], 'objective':['binary:logistic'],
+        parameters =[{'n_jobs':[-1],'use_label_encoder':[False],'eval_metric':['logloss'], 'objective':['binary:logistic'],
         'gamma': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1], 'max_depth': [1, 3, 5, 7, 9]}]
         grid_search = GridSearchCV(estimator = classifier,param_grid = parameters,scoring = 'accuracy',n_jobs = -1, cv=10)
         grid_search.fit(self.X_train, self.y_train)
@@ -145,13 +154,15 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
 
     def CatBoost(self):
-        classifier=CatBoostClassifier()
+        #WARNINGS
+        classifier=CatBoostClassifier(verbose=False,allow_writing_files=False)
         type='CatBoost'
-        parameters =[{'custom_loss':['AUC', 'Accuracy'], 'verbose':[False], 'allow_writing_files':[False] }]
+        parameters =[{'custom_loss':['AUC', 'Accuracy'], 'verbose':[False], 'allow_writing_files':[False]}]
         grid_search = GridSearchCV(estimator = classifier,param_grid = parameters,scoring = 'accuracy',n_jobs = -1, cv=10)
         grid_search.fit(self.X_train, self.y_train)
         best_accuracy = grid_search.best_score_
@@ -160,7 +171,8 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
         
     def ADABoost(self):
@@ -175,9 +187,9 @@ class Classification:
         cm = confusion_matrix(self.y_test, y_pred)
         accuracy=accuracy_score(self.y_test, y_pred)
         cm2=confusion_matrix(self.y_train, grid_search.predict(self.X_train))
-        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters]
+        plt=plot_learning_curve(estimator=classifier,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,accuracy*100,cm,cm2,best_accuracy*100,best_parameters,plt]
         return output
-
 
 class Regression:
     def __init__(self, X_train=None,y_train=None,X_test=None,y_test=None):
@@ -191,23 +203,27 @@ class Regression:
         self.y_train = sc_y.fit_transform(self.y_train)   
         self.X_test = sc_X.transform(self.X_test)
         self.y_test = sc_y.transform(self.y_test)
-        self.y_train=self.y_train.reshape(-1)
+        self.X_combined = np.r_[self.X_train, self.X_test]
+        self.y_combined = np.r_[self.y_train, self.y_test] 
+        self.y_train=self.y_train.reshape(-1) 
     def main(self):
         val=[]
                 
     def Polynomial(self):
-        poly_reg = PolynomialFeatures(degree=4)
+        poly= PolynomialFeatures(degree=5)
         type='PolynomialRegression'
-        X_train=poly_reg.fit_transform(self.X_train)
-        X_test=poly_reg.transform(self.X_test)
-        regressor=LinearRegression(n_jobs=-1)
-        regressor.fit(X_train, self.y_train)
-        y_pred=regressor.predict(X_test)
-        r2=r2_score(self.y_test,y_pred)*100
-        accuracies = cross_val_score(estimator = regressor, X = self.X_train, y = self.y_train, cv = 10)
-        accuracy=accuracies.mean()*100
-        std=accuracies.std()*100
-        output=[regressor,type,r2,accuracy,std]
+        parameters =[{'n_jobs':[-1]}]
+        regressor=LinearRegression()
+        grid_search = GridSearchCV(estimator = regressor,param_grid = parameters,scoring = 'neg_mean_squared_error',n_jobs = -1, cv=10)
+        grid_search.fit(self.X_train, self.y_train)
+        best_accuracy = grid_search.best_score_*100
+        best_parameters=grid_search.best_params_
+        regressor=grid_search.best_estimator_
+        y_pred=regressor.predict(self.X_test)
+        testaccuracy=regressor.score(self.X_test,self.y_test)
+        trainaccuracy=regressor.score(self.X_train,self.y_train)
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]    
         return output
             
     def DecisionTree(self):
@@ -224,14 +240,15 @@ class Regression:
         y_pred=regressor.predict(self.X_test)
         testaccuracy=regressor.score(self.X_test,self.y_test)
         trainaccuracy=regressor.score(self.X_train,self.y_train)
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]        
         return output
     
     def SVM(self):
         regressor=SVR()
         type='SupportVectorMachine'
         parameters =[{'C': [0.2, 0.4, 0.6, 0.8, 1], 'kernel': ['linear']},
-                     {'C': [0.2, 0.4, 0.6, 0.8, 1], 'kernel': ['rbf'], 'gamma': [0.2, 0.4, 0.6, 0.8, 1, 'scale', 'auto']},
+                     {'C': [0.2, 0.4, 0.6, 0.8, 1], 'kernel': ['rbf'], 'gamma': [0.2, 0.4, 0.6, 0.8, 1,'auto']},
                      { 'C': [0.2, 0.4, 0.6, 0.8, 1], 'kernel': ['poly'],'degree': [3,4,5]}]
         grid_search = GridSearchCV(estimator = regressor,param_grid = parameters,scoring = 'neg_mean_squared_error', n_jobs = -1, cv=10)
         grid_search.fit(self.X_train, self.y_train)
@@ -241,14 +258,15 @@ class Regression:
         y_pred=regressor.predict(self.X_test)
         testaccuracy=regressor.score(self.X_test,self.y_test)
         trainaccuracy=regressor.score(self.X_train,self.y_train)
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]        
         return output
         
     def RandomForest(self):
         regressor=RandomForestRegressor()
         type='RandomForest'
-        parameters =[{'criterion': ['squared_error','absolute_error'], 'max_features':['log2','sqrt', 'auto']}]
-        grid_search = GridSearchCV(estimator = regressor,param_grid = parameters,scoring = 'neg_mean_squared_error',n_jobs = -1, cv=10, verbose=3)
+        parameters =[{'criterion': ['squared_error'], 'max_features':['log2','sqrt', 'auto']}]
+        grid_search = GridSearchCV(estimator = regressor,param_grid = parameters,scoring = 'neg_mean_squared_error',n_jobs = -1, cv=10)
         grid_search.fit(self.X_train, self.y_train)
         best_accuracy = grid_search.best_score_*100
         best_parameters=grid_search.best_params_
@@ -256,11 +274,13 @@ class Regression:
         y_pred=regressor.predict(self.X_test)
         testaccuracy=regressor.score(self.X_test,self.y_test)
         trainaccuracy=regressor.score(self.X_train,self.y_train)
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]
         return output
         
     def XGBoost(self):
-        regressor=XGBRegressor(use_label_encoder=False)
+        # WARNINGS
+        regressor=XGBRegressor()
         type='XGBoost'
         parameters =[{'n_jobs':[-1],'use_label_encoder':[False],'eval_metric':['rmse'], 'objective':['reg:squarederror'], 'booster':['gblinear', 'gbtree']}]
         grid_search = GridSearchCV(estimator = regressor,param_grid = parameters,scoring = 'neg_mean_squared_error',n_jobs = -1, cv=10)
@@ -271,7 +291,8 @@ class Regression:
         y_pred=regressor.predict(self.X_test)
         testaccuracy=regressor.score(self.X_test,self.y_test)
         trainaccuracy=regressor.score(self.X_train,self.y_train)
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]        
         return output
 
     def CatBoost(self):
@@ -284,11 +305,11 @@ class Regression:
         best_accuracy = grid_search.best_score_*100
         best_parameters=grid_search.best_params_
         regressor=grid_search.best_estimator_
-        
         y_pred=regressor.predict(self.X_test)
         trainaccuracy=r2_score(self.y_train,regressor.predict(self.X_train))*100
         testaccuracy=r2_score(self.y_test,y_pred)*100
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]        
         return output
 
     def ADABoost(self):
@@ -303,5 +324,50 @@ class Regression:
         y_pred=regressor.predict(self.X_test)
         testaccuracy=regressor.score(self.X_test,self.y_test)
         trainaccuracy=regressor.score(self.X_train,self.y_train)
-        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters]
+        plt=plot_learning_curve(estimator=regressor,title=type,X=self.X_combined, y=self.y_combined)
+        output=[type,trainaccuracy,testaccuracy,best_accuracy,best_parameters,plt]        
         return output
+    
+def plot_learning_curve(estimator,title,X,y,cv=10,n_jobs=-1,train_sizes=np.linspace(0.1, 1.0, 10)):
+    y=y.reshape(-1)
+    fig, axes = plt.subplots(3, 1, figsize=(10, 10))
+    axes[0].set_title(title)
+    axes[0].set_xlabel("Training examples")
+    axes[0].set_ylabel("Score")
+
+    train_sizes, train_scores, test_scores, fit_times, _ = learning_curve(estimator,X,y,cv=cv,n_jobs=n_jobs,train_sizes=train_sizes,return_times=True)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    fit_times_mean = np.mean(fit_times, axis=1)
+    fit_times_std = np.std(fit_times, axis=1)
+
+    axes[0].grid()
+    axes[0].fill_between(train_sizes,train_scores_mean - train_scores_std,train_scores_mean + train_scores_std,alpha=0.1,color="r")
+    axes[0].fill_between(train_sizes,test_scores_mean - test_scores_std,test_scores_mean + test_scores_std,alpha=0.1,color="g")
+    axes[0].plot(train_sizes, train_scores_mean, "o-", color="r", label="Training score")
+    axes[0].plot(train_sizes, test_scores_mean, "o-", color="g", label="Cross-validation score")
+    axes[0].legend(loc="best")
+
+    axes[1].grid()
+    axes[1].plot(train_sizes, fit_times_mean, "o-")
+    axes[1].fill_between(train_sizes,fit_times_mean - fit_times_std,fit_times_mean + fit_times_std,alpha=0.1,)
+    axes[1].set_xlabel("Training examples")
+    axes[1].set_ylabel("fit_times")
+    axes[1].set_title("Scalability of the model")
+
+    fit_time_argsort = fit_times_mean.argsort()
+    fit_time_sorted = fit_times_mean[fit_time_argsort]
+    test_scores_mean_sorted = test_scores_mean[fit_time_argsort]
+    test_scores_std_sorted = test_scores_std[fit_time_argsort]
+    axes[2].grid()
+    axes[2].plot(fit_time_sorted, test_scores_mean_sorted, "o-")
+    axes[2].fill_between(fit_time_sorted,test_scores_mean_sorted - test_scores_std_sorted,test_scores_mean_sorted + test_scores_std_sorted,alpha=0.1,)
+    axes[2].set_xlabel("fit_times")
+    axes[2].set_ylabel("Score")
+    axes[2].set_title("Performance of the model")
+    plt.subplots_adjust(left=0.1,bottom=0.1,right=0.9,top=0.9,wspace=0.4,hspace=0.4)
+    plt.show()
+    return plt
+    # cv = ShuffleSplit(n_splits=50, test_size=0.2)

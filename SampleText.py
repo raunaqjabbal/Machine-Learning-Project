@@ -1,7 +1,5 @@
-import pandas
 from yayo import Regression
 from yayo import Classification
-import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from pathlib import Path
@@ -20,7 +18,7 @@ def C():
     # print(demo.KNN())
     # print(demo.NaiveBayes())
     # print(demo.SVM())
-    # print(demo.XGBoost())
+    print(demo.XGBoost())
     # print(demo.CatBoost())
     # print(demo.ADABoost())
 
@@ -34,10 +32,10 @@ def R():
     demo=Regression(X_train=X_train,y_train=y_train,X_test=X_test,y_test=y_test)
     # print(demo.Polynomial())
     # print(demo.DecisionTree())
-    print(demo.SVM())
+    # print(demo.SVM())
     # print(demo.RandomForest())
     # print(demo.XGBoost())
     # print(demo.CatBoost())
     # print(demo.ADABoost())
       
-R()
+C()
